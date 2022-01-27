@@ -1,27 +1,50 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include "./stripConfig.hpp"
+#include <cmath>
 
-#define LED_PIN 12
-#define NUM_LEDS 24
+#include "../strip_configs/three_strips.h"
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(24, LED_PIN, NEO_GRB + NEO_KHZ800);
+std::vector<Adafruit_NeoPixel> strips;
 
-void stars(uint16_t count, uint8_t count_parallel, uint8_t wait) {
+void stars(uint16_t count, uint8_t wait) {
   #define stepSize 1
-  strip.clear();
+  // reset strips
+  for (auto strip : strips) {
+    strip.clear();
+  }
 
-  uint8_t indices[count_parallel] = {};
+  // determine how many stars per strip are needed
+  std::vector<std::vector<uint8_t>> star_indices;
+  for (auto config : configurations) {
+    auto amout_of_stars = static_cast<int>(std::sqrt(config.num_leds));
+    std::vector<uint8_t> indices;
+    for (; amout_of_stars > 0; amout_of_stars--) {
+      indices.push_back(-1);
+    }
+    star_indices.push_back(indices);
+  }
 
-  for(uint16_t i = 0; i < count; i++){
-    for (uint8_t k = 0; k < count_parallel; k++) {
-      indices[k] = random(0,strip.numPixels());
+  for(uint8_t current_star_iteration = 0; current_star_iteration < count; current_star_iteration++){
+    // choose random leds per strip
+    for (uint8_t strip_index = 0; strip_index < star_indices.size(); strip_index++) {
+      auto & strip = strips[strip_index];
+      auto strip_star_indices = star_indices[strip_index];
+      for (uint8_t star_index = 0; star_index < strip_star_indices.size(); star_index++) {
+        strip_star_indices[star_index] = random(0, strip.numPixels());
+      }
     }
     
-    for(uint16_t j=0; j <= 255; j += stepSize){
-      for (uint8_t l = 0; l < count_parallel; l++) {
-        strip.setPixelColor(indices[l], strip.Color(255-j, 255-j, 0));
+    // light the chosen leds up
+    for(uint16_t step = 0; step <= 255; step += stepSize){
+      for (uint8_t strip_index = 0; strip_index < star_indices.size(); strip_index++) {
+        auto & strip = strips[strip_index];
+        auto strip_star_indices = star_indices[strip_index];
+        for (uint8_t star_index = 0; star_index < strip_star_indices.size(); star_index++) {
+          strip.setPixelColor(strip_star_indices[star_index], strip.Color(255 - step, 255 - step, 0));
+        }
+        strip.show();
       }
-      strip.show();
       delay(round(500.0 * wait / 255));
     }       
   }
@@ -53,14 +76,20 @@ void rainbow(uint8_t wait) {
 }
 
 void setup() {
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
+  for(auto config : configurations) {
+    strips.push_back(Adafruit_NeoPixel(config.num_leds, config.led_pin, config.led_kind));
+  }
+
+  for (auto strip : strips) {
+    strip.begin();
+    strip.show();
+  }
 }
 
 void loop() {
     randomSeed(analogRead(1));
 
-    stars(40, 3, 3);
+    stars(20, 3, 3);
     rainbow(40);
 
     delay (2000);
