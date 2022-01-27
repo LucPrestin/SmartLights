@@ -1,8 +1,9 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
-#include "./stripConfig.hpp"
 #include <cmath>
+#include <vector>
 
+// here goes the config you want to use
 #include "../strip_configs/three_strips.h"
 
 std::vector<Adafruit_NeoPixel> strips;
@@ -10,13 +11,13 @@ std::vector<Adafruit_NeoPixel> strips;
 void stars(uint16_t count, uint8_t wait) {
   #define stepSize 1
   // reset strips
-  for (auto strip : strips) {
+  for (auto & strip : strips) {
     strip.clear();
   }
 
   // determine how many stars per strip are needed
   std::vector<std::vector<uint8_t>> star_indices;
-  for (auto config : configurations) {
+  for (auto & config : configurations) {
     auto amout_of_stars = static_cast<int>(std::sqrt(config.num_leds));
     std::vector<uint8_t> indices;
     for (; amout_of_stars > 0; amout_of_stars--) {
@@ -50,7 +51,7 @@ void stars(uint16_t count, uint8_t wait) {
   }
 }
 
-uint32_t Wheel(byte WheelPos) {
+uint32_t Wheel(Adafruit_NeoPixel & strip, byte WheelPos) {
   WheelPos = 255 - WheelPos;
   if(WheelPos < 85) {
     return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
@@ -64,23 +65,25 @@ uint32_t Wheel(byte WheelPos) {
 }
 
 void rainbow(uint8_t wait) {
-  uint16_t i, j;
+    uint16_t i, j;
 
-  for(j=0; j<256; j++) {
-    for(i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel((i+j) & 255));
+    for(j = 0; j < 256; j++) {
+      for (auto & strip : strips) {
+        for(i = 0; i < strip.numPixels(); i++) {
+          strip.setPixelColor(i, Wheel(strip, (i + j) & 255));
+        }
+        strip.show();
+      }
+      delay(wait);
     }
-    strip.show();
-    delay(wait);
-  }
 }
 
 void setup() {
-  for(auto config : configurations) {
+  for(auto & config : configurations) {
     strips.push_back(Adafruit_NeoPixel(config.num_leds, config.led_pin, config.led_kind));
   }
 
-  for (auto strip : strips) {
+  for (auto & strip : strips) {
     strip.begin();
     strip.show();
   }
@@ -89,7 +92,7 @@ void setup() {
 void loop() {
     randomSeed(analogRead(1));
 
-    stars(20, 3, 3);
+    //stars(20, 3);
     rainbow(40);
 
     delay (2000);
