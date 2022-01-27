@@ -4,48 +4,43 @@
 #include <vector>
 
 // here goes the config you want to use
-#include "../strip_configs/three_strips.h"
+// #include "../strip_configs/three_strips.h"
 
-std::vector<Adafruit_NeoPixel> strips;
+auto strip1 = Adafruit_NeoPixel(8, 19, NEO_GRB + NEO_KHZ800);
+auto strip2 = Adafruit_NeoPixel(12, 18, NEO_GRB + NEO_KHZ800);
+auto strip3 = Adafruit_NeoPixel(12, 5, NEO_GRB + NEO_KHZ800);
 
 void stars(uint16_t count, uint8_t wait) {
   #define stepSize 1
   // reset strips
-  for (auto & strip : strips) {
-    strip.clear();
-  }
+  strip1.clear();
+  strip2.clear();
+  strip3.clear();
 
-  // determine how many stars per strip are needed
-  std::vector<std::vector<uint8_t>> star_indices;
-  for (auto & config : configurations) {
-    auto amout_of_stars = static_cast<int>(std::sqrt(config.num_leds));
-    std::vector<uint8_t> indices;
-    for (; amout_of_stars > 0; amout_of_stars--) {
-      indices.push_back(-1);
-    }
-    star_indices.push_back(indices);
-  }
+  uint8_t num_stars = 3;
+  uint8_t strip1_indexes[num_stars];
+  uint8_t strip2_indexes[num_stars];
+  uint8_t strip3_indexes[num_stars];
 
-  for(uint8_t current_star_iteration = 0; current_star_iteration < count; current_star_iteration++){
+
+  for(uint8_t stars_shown = 0; stars_shown < count; stars_shown++){
     // choose random leds per strip
-    for (uint8_t strip_index = 0; strip_index < star_indices.size(); strip_index++) {
-      auto & strip = strips[strip_index];
-      auto strip_star_indices = star_indices[strip_index];
-      for (uint8_t star_index = 0; star_index < strip_star_indices.size(); star_index++) {
-        strip_star_indices[star_index] = random(0, strip.numPixels());
-      }
+    for (uint8_t star_index = 0; star_index < num_stars; star_index++) {
+      strip1_indexes[star_index] = random(0, strip1.numPixels());
+      strip2_indexes[star_index] = random(0, strip3.numPixels());
+      strip3_indexes[star_index] = random(0, strip3.numPixels());
     }
     
     // light the chosen leds up
     for(uint16_t step = 0; step <= 255; step += stepSize){
-      for (uint8_t strip_index = 0; strip_index < star_indices.size(); strip_index++) {
-        auto & strip = strips[strip_index];
-        auto strip_star_indices = star_indices[strip_index];
-        for (uint8_t star_index = 0; star_index < strip_star_indices.size(); star_index++) {
-          strip.setPixelColor(strip_star_indices[star_index], strip.Color(255 - step, 255 - step, 0));
-        }
-        strip.show();
+      for (uint8_t star_index = 0; star_index < num_stars; star_index++) {
+        strip1.setPixelColor(strip1_indexes[star_index], strip1.Color(255 - step, 255 - step, 0));
+        strip2.setPixelColor(strip2_indexes[star_index], strip2.Color(255 - step, 255 - step, 0));
+        strip3.setPixelColor(strip3_indexes[star_index], strip3.Color(255 - step, 255 - step, 0));
       }
+      strip1.show();
+      strip2.show();
+      strip3.show();
       delay(round(500.0 * wait / 255));
     }       
   }
@@ -68,25 +63,30 @@ void rainbow(uint8_t wait) {
     uint16_t i, j;
 
     for(j = 0; j < 256; j++) {
-      for (auto & strip : strips) {
-        for(i = 0; i < strip.numPixels(); i++) {
-          strip.setPixelColor(i, Wheel(strip, (i + j) & 255));
-        }
-        strip.show();
+      for(i = 0; i < strip1.numPixels(); i++) {
+        strip1.setPixelColor(i, Wheel(strip1, (i + j) & 255));
       }
+      for(i = 0; i < strip2.numPixels(); i++) {
+        strip2.setPixelColor(i, Wheel(strip2, (i + j) & 255));
+      }
+      for(i = 0; i < strip3.numPixels(); i++) {
+        strip3.setPixelColor(i, Wheel(strip3, (i + j) & 255));
+      }
+      strip1.show();
+      strip2.show();
+      strip3.show();
       delay(wait);
     }
 }
 
 void setup() {
-  for(auto & config : configurations) {
-    strips.push_back(Adafruit_NeoPixel(config.num_leds, config.led_pin, config.led_kind));
-  }
+  strip1.begin();
+  strip2.begin();
+  strip3.begin();
 
-  for (auto & strip : strips) {
-    strip.begin();
-    strip.show();
-  }
+  strip1.show();
+  strip2.show();
+  strip3.show();
 }
 
 void loop() {
@@ -94,6 +94,4 @@ void loop() {
 
     //stars(20, 3);
     rainbow(40);
-
-    delay (2000);
 }
