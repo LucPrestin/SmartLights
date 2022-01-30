@@ -1,46 +1,46 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #include <cmath>
-#include <vector>
+#include <algorithm>
+#include <array>
 
 // here goes the config you want to use
-// #include "../strip_configs/three_strips.h"
-
-auto strip1 = Adafruit_NeoPixel(8, 19, NEO_GRB + NEO_KHZ800);
-auto strip2 = Adafruit_NeoPixel(12, 18, NEO_GRB + NEO_KHZ800);
-auto strip3 = Adafruit_NeoPixel(12, 5, NEO_GRB + NEO_KHZ800);
+#include "./strip_configs/three_strips.h"
 
 void stars(uint16_t count, uint8_t wait) {
   #define stepSize 1
   // reset strips
-  strip1.clear();
-  strip2.clear();
-  strip3.clear();
+  for (auto & strip: strips) {
+    strip.clear();
+  }
 
-  uint8_t num_stars = 3;
-  uint8_t strip1_indexes[num_stars];
-  uint8_t strip2_indexes[num_stars];
-  uint8_t strip3_indexes[num_stars];
+  // create index arrays
+  std::array<std::array<uint8_t, max_nr_stars>, num_strips> star_indices;
+  for (uint8_t strip_index = 0; strip_index < num_strips; strip_index++) {
+    for (uint8_t star_index = 0; star_index < num_stars.at(strip_index); star_index++) {
+      star_indices.at(strip_index).at(star_index) = 0;
+    }
+  }
 
 
   for(uint8_t stars_shown = 0; stars_shown < count; stars_shown++){
     // choose random leds per strip
-    for (uint8_t star_index = 0; star_index < num_stars; star_index++) {
-      strip1_indexes[star_index] = random(0, strip1.numPixels());
-      strip2_indexes[star_index] = random(0, strip3.numPixels());
-      strip3_indexes[star_index] = random(0, strip3.numPixels());
+    for (uint8_t strip_index = 0; strip_index < num_strips; strip_index++) {
+      for (uint8_t star_index = 0; star_index < num_stars[strip_index]; star_index++) {
+        star_indices.at(strip_index).at(star_index) = random(0, strips[strip_index].numPixels());
+      }
     }
     
     // light the chosen leds up
     for(uint16_t step = 0; step <= 255; step += stepSize){
-      for (uint8_t star_index = 0; star_index < num_stars; star_index++) {
-        strip1.setPixelColor(strip1_indexes[star_index], strip1.Color(255 - step, 255 - step, 0));
-        strip2.setPixelColor(strip2_indexes[star_index], strip2.Color(255 - step, 255 - step, 0));
-        strip3.setPixelColor(strip3_indexes[star_index], strip3.Color(255 - step, 255 - step, 0));
+      for (uint8_t strip_index = 0; strip_index < num_strips; strip_index++) {
+        for (uint8_t star_index = 0; star_index < num_stars.at(strip_index); star_index++) {
+          strips[strip_index].setPixelColor(star_indices.at(strip_index).at(star_index), strips[strip_index].Color(255 - step, 255 - step, 0));
+        }
       }
-      strip1.show();
-      strip2.show();
-      strip3.show();
+      for (auto & strip: strips) {
+        strip.show();
+      }
       delay(round(500.0 * wait / 255));
     }       
   }
@@ -63,35 +63,33 @@ void rainbow(uint8_t wait) {
     uint16_t i, j;
 
     for(j = 0; j < 256; j++) {
-      for(i = 0; i < strip1.numPixels(); i++) {
-        strip1.setPixelColor(i, Wheel(strip1, (i + j) & 255));
+      for (auto & strip: strips) {
+        for(i = 0; i < strip.numPixels(); i++) {
+          strip.setPixelColor(i, Wheel(strip, (i + j) & 255));
+        }
       }
-      for(i = 0; i < strip2.numPixels(); i++) {
-        strip2.setPixelColor(i, Wheel(strip2, (i + j) & 255));
+
+      for (auto & strip: strips) {
+        strip.show();
       }
-      for(i = 0; i < strip3.numPixels(); i++) {
-        strip3.setPixelColor(i, Wheel(strip3, (i + j) & 255));
-      }
-      strip1.show();
-      strip2.show();
-      strip3.show();
+      
       delay(wait);
     }
 }
 
 void setup() {
-  strip1.begin();
-  strip2.begin();
-  strip3.begin();
+  for (auto & strip: strips) {
+    strip.begin();
+  }
 
-  strip1.show();
-  strip2.show();
-  strip3.show();
+  for (auto & strip: strips) {
+    strip.show();
+  }
 }
 
 void loop() {
     randomSeed(analogRead(1));
 
-    //stars(20, 3);
+    stars(20, 3);
     rainbow(40);
 }
