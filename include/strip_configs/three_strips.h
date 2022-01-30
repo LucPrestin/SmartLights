@@ -1,3 +1,5 @@
+#pragma once
+
 #include <array>
 #include <Adafruit_NeoPixel.h>
 
