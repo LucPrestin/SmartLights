@@ -73,10 +73,10 @@ uint32_t Wheel(byte WheelPos) {
 }
 
 void rainbow(uint8_t wait) {
-    uint16_t i, j;
+    uint16_t i;
 
-    for(j = 0; j < 256; j++) {
-      set_all_strips_to(Wheel(j & 255));
+    for(i = 0; i < 256; i++) {
+      set_all_strips_to(Wheel(i & 255));
       show_all_strips();
       delay(wait);
     }
@@ -92,20 +92,31 @@ void setup_strips() {
 
 void wait_for_connection() {
   set_all_strips_to(Adafruit_NeoPixel::Color(255, 165, 0));
+  show_all_strips();
+
+  delay(1000);
 
   auto status = WiFi.status();
-  while (status != WL_CONNECTED || status != WL_CONNECT_FAILED) {
-    Serial.print('.');
+  while (status != WL_CONNECTED && status != WL_CONNECT_FAILED) {
     delay(1000);
     status = WiFi.status();
   }
 
-  if (status == WL_CONNECT_FAILED) {
-    set_all_strips_to(Adafruit_NeoPixel::Color(255, 0, 0));
-  } else {
-    set_all_strips_to(Adafruit_NeoPixel::Color(0, 255, 0));
-    delay(2000);
-    set_all_strips_to(Adafruit_NeoPixel::Color(0, 0, 0));
+  switch (status) {
+    case WL_CONNECT_FAILED:
+      set_all_strips_to(Adafruit_NeoPixel::Color(255, 0, 0));
+      show_all_strips();
+      break;
+    case WL_CONNECTED:
+      set_all_strips_to(Adafruit_NeoPixel::Color(0, 255, 0));
+      show_all_strips();
+      delay(2000);
+      set_all_strips_to(Adafruit_NeoPixel::Color(0, 0, 0));
+      show_all_strips();
+      delay(1000);
+      break;
+    default:
+      break;
   }
 }
 
@@ -116,7 +127,6 @@ void setup_wifi() {
 }
 
 void setup() {
-  Serial.begin(115200);
   setup_strips();
   setup_wifi();
 }
