@@ -90,7 +90,7 @@ void setup_strips() {
   show_all_strips();
 }
 
-void connect_to_wifi() {
+void wait_for_connection() {
   set_all_strips_to(Adafruit_NeoPixel::Color(255, 165, 0));
 
   auto status = WiFi.status();
@@ -112,7 +112,7 @@ void connect_to_wifi() {
 void setup_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  connect_to_wifi();
+  wait_for_connection();
 }
 
 void setup() {
@@ -122,8 +122,15 @@ void setup() {
 }
 
 void loop() {
-    randomSeed(analogRead(1));
+  currentTime = millis();
+  if ((WiFi.status() != WL_CONNECTED) && (currentTime - previousTime >= timeoutInterval)) {
+    WiFi.reconnect();
+    wait_for_connection();
+    previousTime = currentTime;
+  }
 
-    stars(20, 3);
-    rainbow(40);
+  randomSeed(analogRead(1));
+
+  stars(20, 3);
+  rainbow(40);
 }
