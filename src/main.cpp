@@ -8,7 +8,7 @@
 #include "wifi_config.h"
 
 // here goes the config you want to use
-#include "./strip_configs/three_shelves.h"
+#include "./strip_configs/test_strip.h"
 
 void set_all_strips_to(uint32_t color) {
   for (auto & strip: strips) {
