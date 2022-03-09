@@ -4,8 +4,23 @@
 #include <algorithm>
 #include <array>
 
+#include "WiFi.h"
+#include "wifi_config.h"
+
 // here goes the config you want to use
-#include "./strip_configs/three_strips.h"
+#include "./strip_configs/three_shelves.h"
+
+void set_all_strips_to(uint32_t color) {
+  for (auto & strip: strips) {
+    strip.fill(color, 0, strip.numPixels());
+  }
+}
+
+void show_all_strips() {
+  for (auto & strip : strips) {
+    strip.show();
+  }
+}
 
 void stars(uint16_t count, uint8_t wait) {
   #define stepSize 1
@@ -38,53 +53,72 @@ void stars(uint16_t count, uint8_t wait) {
           strips[strip_index].setPixelColor(star_indices.at(strip_index).at(star_index), strips[strip_index].Color(255 - step, 255 - step, 0));
         }
       }
-      for (auto & strip: strips) {
-        strip.show();
-      }
+      show_all_strips();
       delay(round(500.0 * wait / 255));
     }       
   }
 }
 
-uint32_t Wheel(Adafruit_NeoPixel & strip, byte WheelPos) {
+uint32_t Wheel(byte WheelPos) {
   WheelPos = 255 - WheelPos;
   if(WheelPos < 85) {
-    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+    return Adafruit_NeoPixel::Color(255 - WheelPos * 3, 0, WheelPos * 3);
   }
   if(WheelPos < 170) {
     WheelPos -= 85;
-    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
   WheelPos -= 170;
-  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
 
 void rainbow(uint8_t wait) {
     uint16_t i, j;
 
     for(j = 0; j < 256; j++) {
-      for (auto & strip: strips) {
-        for(i = 0; i < strip.numPixels(); i++) {
-          strip.setPixelColor(i, Wheel(strip, (i + j) & 255));
-        }
-      }
-
-      for (auto & strip: strips) {
-        strip.show();
-      }
-      
+      set_all_strips_to(Wheel(j & 255));
+      show_all_strips();
       delay(wait);
     }
 }
 
-void setup() {
+void setup_strips() {
   for (auto & strip: strips) {
     strip.begin();
   }
 
-  for (auto & strip: strips) {
-    strip.show();
+  show_all_strips();
+}
+
+void connect_to_wifi() {
+  set_all_strips_to(Adafruit_NeoPixel::Color(255, 165, 0));
+
+  auto status = WiFi.status();
+  while (status != WL_CONNECTED || status != WL_CONNECT_FAILED) {
+    Serial.print('.');
+    delay(1000);
+    status = WiFi.status();
   }
+
+  if (status == WL_CONNECT_FAILED) {
+    set_all_strips_to(Adafruit_NeoPixel::Color(255, 0, 0));
+  } else {
+    set_all_strips_to(Adafruit_NeoPixel::Color(0, 255, 0));
+    delay(2000);
+    set_all_strips_to(Adafruit_NeoPixel::Color(0, 0, 0));
+  }
+}
+
+void setup_wifi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  connect_to_wifi();
+}
+
+void setup() {
+  Serial.begin(115200);
+  setup_strips();
+  setup_wifi();
 }
 
 void loop() {
