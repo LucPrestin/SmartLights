@@ -3,15 +3,25 @@
 #include <cmath>
 #include <algorithm>
 #include <array>
+#include <utility>
 
-#include "WiFi.h"
+#include <WiFi.h>
 #include "wifi_config.h"
+
+#include <PubSubClient.h>
+#include "mqtt_config.h"
 
 // here goes the config you want to use
 #include "./strip_configs/test_strip.h"
 
+WiFiClient espClient;
+PubSubClient client(espClient);
+long lastMsg = 0;
+char msg[50];
+int value = 0;
+
 void set_all_strips_to(uint32_t color) {
-  for (auto & strip: strips) {
+  for (auto & strip : strips) {
     strip.fill(color, 0, strip.numPixels());
   }
 }
@@ -25,7 +35,7 @@ void show_all_strips() {
 void stars(uint16_t count, uint8_t wait) {
   #define stepSize 1
   // reset strips
-  for (auto & strip: strips) {
+  for (auto & strip : strips) {
     strip.clear();
   }
 
@@ -50,7 +60,7 @@ void stars(uint16_t count, uint8_t wait) {
     for(uint16_t step = 0; step <= 255; step += stepSize){
       for (uint8_t strip_index = 0; strip_index < num_strips; strip_index++) {
         for (uint8_t star_index = 0; star_index < num_stars.at(strip_index); star_index++) {
-          strips[strip_index].setPixelColor(star_indices.at(strip_index).at(star_index), strips[strip_index].Color(255 - step, 255 - step, 0));
+          strips[strip_index].setPixelColor(star_indices.at(strip_index).at(star_index), Adafruit_NeoPixel::Color(255 - step, 255 - step, 0));
         }
       }
       show_all_strips();
@@ -83,14 +93,14 @@ void rainbow(uint8_t wait) {
 }
 
 void setup_strips() {
-  for (auto & strip: strips) {
+  for (auto & strip : strips) {
     strip.begin();
   }
 
   show_all_strips();
 }
 
-void wait_for_connection() {
+void wait_for_wifi_connection() {
   set_all_strips_to(Adafruit_NeoPixel::Color(255, 165, 0));
   show_all_strips();
 
@@ -123,19 +133,51 @@ void wait_for_connection() {
 void setup_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  wait_for_connection();
+  wait_for_wifi_connection();
+}
+
+void reconnect_mqtt() {
+  while (!client.connected()) {
+    if (client.connect(mqtt_name)) {
+      client.subscribe("esp32/output");
+    } else {
+      delay(5000);
+    }
+  }
+}
+
+// HOW? I need dynamic arrays
+int get_index_of_strip_by_topic(char * topic) {
+  for (const char * topic_list : topics) {
+
+  }
+
+}
+
+void mqtt_callback(char* topic, byte* message, unsigned int length) {
+  
+}
+
+void setup_mqtt() {
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(mqtt_callback);
 }
 
 void setup() {
   setup_strips();
   setup_wifi();
+  setup_mqtt();
 }
 
 void loop() {
+  // if (!client.connected()) {
+  //   reconnect();
+  // }
+  // client.loop();
   currentTime = millis();
   if ((WiFi.status() != WL_CONNECTED) && (currentTime - previousTime >= timeoutInterval)) {
     WiFi.reconnect();
-    wait_for_connection();
+    wait_for_wifi_connection();
     previousTime = currentTime;
   }
 
