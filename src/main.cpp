@@ -18,8 +18,8 @@ void loop() {
     previousTime = currentTime;
   }
 
-  // if (!client.connected()) {
-  //   reconnect();
-  // }
-  // client.loop();
+  if (!mqtt_connected()) {
+    reconnect_mqtt();
+  }
+  run_mqtt_loop();
 }

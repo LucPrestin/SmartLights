@@ -1,5 +1,9 @@
 #include "mqtt_client.h"
 
+boolean mqtt_connected() {
+  return client.connected();
+}
+
 void reconnect_mqtt() {
   while (!client.connected()) {
     if (client.connect(mqtt_name)) {
@@ -10,6 +14,10 @@ void reconnect_mqtt() {
       delay(5000);
     }
   }
+}
+
+void run_mqtt_loop() {
+  client.loop();
 }
 
 std::array<bool, num_strips> get_strip_affection (String & topic) {
