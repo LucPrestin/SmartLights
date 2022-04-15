@@ -11,11 +11,11 @@ std::array<Adafruit_NeoPixel, num_strips> strips {
 };
 
 std::array<const String, num_topics> topics {
-  "all", "test"
+  "all" + color_suffix, "test" + color_suffix
 };
 
 std::array<const String, num_strips> topics_per_strip {
-  "all"  + topic_delimiter + "test"
+  "all" + color_suffix + topic_delimiter + "test" + color_suffix
 };
 
 constexpr std::array<uint8_t, num_strips> num_stars {1};

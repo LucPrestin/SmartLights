@@ -6,6 +6,11 @@ void set_all_strips_to(uint32_t color) {
   }
 }
 
+void set_strip_to(uint32_t color, int index) {
+  auto & strip = strips.at(index);
+  strip.fill(color, 0, strip.numPixels());
+}
+
 void show_all_strips() {
   for (auto & strip : strips) {
     strip.show();

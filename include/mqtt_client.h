@@ -10,6 +10,11 @@ long lastMsg = 0;
 char msg[50];
 int value = 0;
 
+union ArrayToInteger {
+  byte array[4];
+  uint32_t integer;
+};
+
 void reconnect_mqtt();
 std::array<bool, num_strips> get_strip_affection (char * topic);
 uint32_t get_color_from_message(byte * payload, unsigned int length);

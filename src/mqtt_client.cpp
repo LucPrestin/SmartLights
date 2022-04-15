@@ -12,7 +12,7 @@ void reconnect_mqtt() {
   }
 }
 
-std::array<bool, num_strips> get_strip_affection (char * topic) {
+std::array<bool, num_strips> get_strip_affection (String & topic) {
   std::array<bool, num_strips> result;
   result.fill(false);
 
@@ -34,15 +34,39 @@ std::array<bool, num_strips> get_strip_affection (char * topic) {
 }
 
 uint32_t get_color_from_message(byte * payload, unsigned int length) {
-  payload[length] = 0;
-  String message = String((char *) payload);
+  if (length == 4) {
+    ArrayToInteger converter;
 
-  message.remove(0, color_prefix.length());
-  message.remove(message.length() - color_suffix.length() - 1);
+    for (int i = 0; i < length; i++) {
+      converter.array[i] = *payload;
+      payload++;
+    }
+
+    return converter.integer;
+  }
+
+  return 0;
+}
+
+void apply_color_to_strips(String topic, byte * payload, unsigned int length) {
+  auto color = get_color_from_message(payload, length);
+  auto strip_affection = get_strip_affection(topic);
+
+  for (int i = 0; i < num_strips; i++) {
+    if (strip_affection.at(i)) {
+      set_strip_to(color, i);
+    }
+  }
+
+  show_all_strips();
 }
 
 void mqtt_callback(const char * topic, byte * payload, unsigned int length) {
-  
+  String sTopic = String(topic);
+
+  if (sTopic.endsWith(color_suffix)) {
+    apply_color_to_strips(sTopic, payload, length);
+  }
 }
 
 void setup_mqtt() {

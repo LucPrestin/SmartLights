@@ -13,13 +13,13 @@ std::array<Adafruit_NeoPixel, num_strips> strips {
 };
 
 std::array<const String, num_topics> topics {
-  "all", "shelves", "shelves/top", "shelves/middle", "shelves/bottom"
+  "all" + color_suffix, "shelves" + color_suffix, "shelves/+" + color_suffix
 };
 
 std::array<const String, num_strips> topics_per_strip {
-  "all"  + topic_delimiter + "shelves"  + topic_delimiter + "shelves/top",
-  "all"  + topic_delimiter + "shelves"  + topic_delimiter + "shelves/middle",
-  "all"  + topic_delimiter + "shelves"  + topic_delimiter + "shelves/bottom"
+  "all" + color_suffix + topic_delimiter + "shelves" + color_suffix + topic_delimiter + "shelves/top" + color_suffix,
+  "all" + color_suffix + topic_delimiter + "shelves" + color_suffix + topic_delimiter + "shelves/middle" + color_suffix,
+  "all" + color_suffix + topic_delimiter + "shelves" + color_suffix + topic_delimiter + "shelves/bottom" + color_suffix
 };
 
 constexpr std::array<uint8_t, num_strips> num_stars {2, 3, 3};
