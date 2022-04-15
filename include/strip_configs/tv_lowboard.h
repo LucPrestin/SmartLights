@@ -1,7 +1,7 @@
 #include <array>
 #include <Adafruit_NeoPixel.h>
 
-#include "../mqtt_config.h"
+#include "../constants.h"
 
 constexpr uint8_t num_strips = 2;
 constexpr uint8_t num_topics = 4;
