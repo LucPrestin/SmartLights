@@ -1,5 +1,19 @@
 #include "wifi_client.h"
 
+WiFiClient espClient = WiFiClient();
+
+unsigned long previousTime = millis();
+unsigned long currentTime = millis();
+
+void assure_wifi_connected() {
+  currentTime = millis();
+  if ((WiFi.status() != WL_CONNECTED) && (currentTime - previousTime >= timeoutInterval)) {
+    WiFi.reconnect();
+    wait_for_wifi_connection();
+    previousTime = currentTime;
+  }
+}
+
 void wait_for_wifi_connection() {
   set_all_strips_to(Adafruit_NeoPixel::Color(255, 165, 0));
   show_all_strips();

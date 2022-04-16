@@ -1,7 +1,14 @@
 #include "mqtt_client.h"
 
-boolean mqtt_connected() {
-  return client.connected();
+PubSubClient client(espClient);
+long lastMsg = 0;
+char msg[50];
+int value = 0;
+
+void assure_mqtt_connected() {
+  if (!client.connected()) {
+    reconnect_mqtt();
+  }
 }
 
 void reconnect_mqtt() {

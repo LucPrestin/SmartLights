@@ -11,15 +11,8 @@ void setup() {
 }
 
 void loop() {
-  currentTime = millis();
-  if ((WiFi.status() != WL_CONNECTED) && (currentTime - previousTime >= timeoutInterval)) {
-    WiFi.reconnect();
-    wait_for_wifi_connection();
-    previousTime = currentTime;
-  }
-
-  if (!mqtt_connected()) {
-    reconnect_mqtt();
-  }
+  assure_wifi_connected();
+  assure_mqtt_connected();
+  
   run_mqtt_loop();
 }
