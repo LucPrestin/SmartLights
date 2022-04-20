@@ -1,6 +1,13 @@
-#ifdef USE_CONFIG_TEST_STRIP
+#ifndef TEST_STRIP_H
+#define TEST_STRIP_H
 
-#include "config/strip_configs/test_strip.h"
+#include <array>
+#include <Adafruit_NeoPixel.h>
+
+#include "constants.h"
+
+constexpr uint8_t num_strips = 1;
+constexpr uint8_t num_topics = 2;
 
 std::array<Adafruit_NeoPixel, num_strips> strips {
   Adafruit_NeoPixel(1, 5, NEO_GRB + NEO_KHZ800)

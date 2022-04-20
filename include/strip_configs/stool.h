@@ -1,6 +1,13 @@
-#ifdef USE_CONFIG_STOOL
+#ifndef STOOL_H
+#define STOOL_H
 
-#include "config/strip_configs/stool.h"
+#include <array>
+#include <Adafruit_NeoPixel.h>
+
+#include "constants.h"
+
+constexpr uint8_t num_strips = 1;
+constexpr uint8_t num_topics = 2;
 
 std::array<Adafruit_NeoPixel, num_strips> strips {
   Adafruit_NeoPixel(12, 12, NEO_GRB + NEO_KHZ800)
