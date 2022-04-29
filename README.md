@@ -7,7 +7,7 @@
 3. Ignore changes to files with passwords or other sensitive data
     - Ignore changes to the wifi config file: `git update-index --skip-worktree include/wifi_config.h`
     - Ignore changes to the mqtt config file: `git update-index --skip-worktree include/mqtt_config.h`
-    - Ignore changes to the strip configs: `git update-index --skip-worktree include/strip_configs/`
+    - Ignore changes to the strip configs: `git update-index --skip-worktree include/strip_configs/*`
 4. Adapt the sensitive data from above
     - Adapt ssid and password in `include/wifi_config.h`
     - Adapt server ip and port in `include/mqtt_config.h`
