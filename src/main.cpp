@@ -1,19 +1,53 @@
 #include <Arduino.h>
-#include <Adafruit_NeoPixel.h>
-#include <cmath>
-#include <algorithm>
-#include <array>
+#include <WiFi.h>
+#include <PubSubClient.h>
 
-#include "WiFi.h"
+#include "constants.h"
 #include "wifi_config.h"
+#include "mqtt_config.h"
 
-// here goes the config you want to use
-#include "./strip_configs/test_strip.h"
+// ============================== build config ============================== //
+
+// here goes the config for the strip you want to use
+// only one must be uncommented
+
+#define USE_CONFIG_TEST_STRIP 
+// #define USE_CONFIG_STOOL
+// #define USE_CONFIG_THREE_SHELVES
+// #define USE_CONFIG_TV_LOWBOARD
+
+#if defined(USE_CONFIG_STOOL)
+    #include "strip_configs/stool.h"
+#elif defined(USE_CONFIG_TEST_STRIP)
+    #include "strip_configs/test_strip.h"
+#elif defined(USE_CONFIG_THREE_SHELVES)
+    #include "strip_configs/three_shelves.h"
+#elif defined(USE_CONFIG_TV_LOWBOARD)
+    #include "strip_configs/tv_lowboard.h"
+#endif
+
+// ============================== build config end ============================== //
+
+// ============================== helpers ============================== //
+
+union ArrayToInteger {
+  byte array[4];
+  uint32_t integer;
+};
+
+// ============================== helpers end ============================== //
+
+// ============================== light ============================== //
 
 void set_all_strips_to(uint32_t color) {
-  for (auto & strip: strips) {
+  for (auto & strip : strips) {
     strip.fill(color, 0, strip.numPixels());
   }
+}
+
+void set_strip_to(uint32_t color, int index) {
+  auto & strip = strips.at(index);
+  strip.fill(color, 0, strip.numPixels());
 }
 
 void show_all_strips() {
@@ -22,75 +56,25 @@ void show_all_strips() {
   }
 }
 
-void stars(uint16_t count, uint8_t wait) {
-  #define stepSize 1
-  // reset strips
-  for (auto & strip: strips) {
-    strip.clear();
-  }
-
-  // create index arrays
-  std::array<std::array<uint8_t, max_nr_stars>, num_strips> star_indices;
-  for (uint8_t strip_index = 0; strip_index < num_strips; strip_index++) {
-    for (uint8_t star_index = 0; star_index < num_stars.at(strip_index); star_index++) {
-      star_indices.at(strip_index).at(star_index) = 0;
-    }
-  }
-
-
-  for(uint8_t stars_shown = 0; stars_shown < count; stars_shown++){
-    // choose random leds per strip
-    for (uint8_t strip_index = 0; strip_index < num_strips; strip_index++) {
-      for (uint8_t star_index = 0; star_index < num_stars[strip_index]; star_index++) {
-        star_indices.at(strip_index).at(star_index) = random(0, strips[strip_index].numPixels());
-      }
-    }
-    
-    // light the chosen leds up
-    for(uint16_t step = 0; step <= 255; step += stepSize){
-      for (uint8_t strip_index = 0; strip_index < num_strips; strip_index++) {
-        for (uint8_t star_index = 0; star_index < num_stars.at(strip_index); star_index++) {
-          strips[strip_index].setPixelColor(star_indices.at(strip_index).at(star_index), strips[strip_index].Color(255 - step, 255 - step, 0));
-        }
-      }
-      show_all_strips();
-      delay(round(500.0 * wait / 255));
-    }       
-  }
-}
-
-uint32_t Wheel(byte WheelPos) {
-  WheelPos = 255 - WheelPos;
-  if(WheelPos < 85) {
-    return Adafruit_NeoPixel::Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  }
-  if(WheelPos < 170) {
-    WheelPos -= 85;
-    return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-  WheelPos -= 170;
-  return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-}
-
-void rainbow(uint8_t wait) {
-    uint16_t i;
-
-    for(i = 0; i < 256; i++) {
-      set_all_strips_to(Wheel(i & 255));
-      show_all_strips();
-      delay(wait);
-    }
-}
-
 void setup_strips() {
-  for (auto & strip: strips) {
+  for (auto & strip : strips) {
     strip.begin();
   }
 
   show_all_strips();
 }
 
-void wait_for_connection() {
+// ============================== light end ============================== //
+
+// ============================== wifi ============================== //
+
+WiFiClient espClient = WiFiClient();
+
+const unsigned long timeoutInterval = 30000;
+unsigned long previousTime = millis();
+unsigned long currentTime = millis();
+
+void wait_for_wifi_connection() {
   set_all_strips_to(Adafruit_NeoPixel::Color(255, 165, 0));
   show_all_strips();
 
@@ -120,27 +104,115 @@ void wait_for_connection() {
   }
 }
 
+void assure_wifi_connected() {
+  currentTime = millis();
+  if ((WiFi.status() != WL_CONNECTED) && (currentTime - previousTime >= timeoutInterval)) {
+    WiFi.reconnect();
+    wait_for_wifi_connection();
+    previousTime = currentTime;
+  }
+}
+
 void setup_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  wait_for_connection();
+  wait_for_wifi_connection();
 }
+
+// ============================== wifi end ============================== //
+
+// ============================== mqtt ============================== //
+
+PubSubClient client(espClient);
+long lastMsg = 0;
+char msg[50];
+int value = 0;
+
+void reconnect_mqtt() {
+  while (!client.connected()) {
+    if (client.connect(mqtt_name, mqtt_name, mqtt_password)) {
+      for (auto topic : topics) {
+        client.subscribe(topic.c_str());
+      }
+    } else {
+      delay(5000);
+    }
+  }
+}
+
+void assure_mqtt_connected() {
+  if (!client.connected()) {
+    reconnect_mqtt();
+  }
+}
+
+void run_mqtt_loop() {
+  client.loop();
+}
+
+std::array<bool, num_strips> get_strip_affection (String & topic){
+  std::array<bool, num_strips> result;
+  result.fill(false);
+
+  for (int i = 0; i < num_strips; i++) {
+    auto & topic_string = topics_per_strip[i];
+    result[i] = topic_string.indexOf(topic) != -1;
+  }
+
+  return result;
+}
+
+uint32_t get_color_from_message(byte * payload, unsigned int length) {
+  if (length == 4 || length == 8) {
+    ArrayToInteger converter;
+    for (int i = 0; i < 4; i++) {
+      converter.array[i] = *(payload + i);
+    }
+    return converter.integer;
+  }
+
+  // default black for if something went wrong
+  return 0;
+}
+
+void apply_color_to_strips(String topic, byte * payload, unsigned int length) {
+  auto color = get_color_from_message(payload, length);
+  auto strip_affection = get_strip_affection(topic);
+
+  for (int i = 0; i < num_strips; i++) {
+    if (strip_affection.at(i)) {
+      set_strip_to(color, i);
+    }
+  }
+
+  show_all_strips();
+}
+
+void mqtt_callback(const char * topic, byte * payload, unsigned int length) {
+  String sTopic = String(topic);
+
+  if (sTopic.endsWith(color_suffix)) {
+    apply_color_to_strips(sTopic, payload, length);
+  }
+}
+
+void setup_mqtt() {
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(mqtt_callback);
+}
+
+
+// ============================== mqtt end ============================== //
 
 void setup() {
   setup_strips();
   setup_wifi();
+  setup_mqtt();
 }
 
 void loop() {
-  currentTime = millis();
-  if ((WiFi.status() != WL_CONNECTED) && (currentTime - previousTime >= timeoutInterval)) {
-    WiFi.reconnect();
-    wait_for_connection();
-    previousTime = currentTime;
-  }
-
-  randomSeed(analogRead(1));
-
-  stars(20, 3);
-  rainbow(40);
+  assure_wifi_connected();
+  assure_mqtt_connected();
+  
+  run_mqtt_loop();
 }
