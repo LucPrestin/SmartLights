@@ -3,6 +3,8 @@
 #include <PubSubClient.h>
 
 #include "constants.h"
+#include "wifi_config.h"
+#include "mqtt_config.h"
 
 // ============================== build config ============================== //
 
@@ -23,13 +25,6 @@
 #elif defined(USE_CONFIG_TV_LOWBOARD)
     #include "strip_configs/tv_lowboard.h"
 #endif
-
-const char * const mqtt_server = "abc";
-const int mqtt_port = 1883;
-const char * const mqtt_name = "abc";
-
-const char * const ssid = "";
-const char * const password = "";
 
 // ============================== build config end ============================== //
 
@@ -135,7 +130,7 @@ int value = 0;
 
 void reconnect_mqtt() {
   while (!client.connected()) {
-    if (client.connect(mqtt_name)) {
+    if (client.connect(mqtt_name, mqtt_name, mqtt_password)) {
       for (auto topic : topics) {
         client.subscribe(topic.c_str());
       }
@@ -155,39 +150,28 @@ void run_mqtt_loop() {
   client.loop();
 }
 
-std::array<bool, num_strips> get_strip_affection (String & topic) {
+std::array<bool, num_strips> get_strip_affection (String & topic){
   std::array<bool, num_strips> result;
   result.fill(false);
 
   for (int i = 0; i < num_strips; i++) {
-    auto topic_string = topics_per_strip[i];
-    int position = -1;
-
-    while((position = topic_string.indexOf(topic_delimiter)) != -1) {
-      auto current_strip_topic = topic_string.substring(0, position);
-      if (current_strip_topic == topic) {
-        result[i] = true;
-        break;
-      }
-      topic_string = topic_string.substring(position + 1);
-    }
+    auto & topic_string = topics_per_strip[i];
+    result[i] = topic_string.indexOf(topic) != -1;
   }
 
   return result;
 }
 
 uint32_t get_color_from_message(byte * payload, unsigned int length) {
-  if (length == 4) {
+  if (length == 4 || length == 8) {
     ArrayToInteger converter;
-
-    for (int i = 0; i < length; i++) {
-      converter.array[i] = *payload;
-      payload++;
+    for (int i = 0; i < 4; i++) {
+      converter.array[i] = *(payload + i);
     }
-
     return converter.integer;
   }
 
+  // default black for if something went wrong
   return 0;
 }
 
